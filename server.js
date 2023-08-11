@@ -2,6 +2,7 @@ const express = require('express')
 const cors = require('cors') 
 const bodyParser = require('body-parser') 
 const MongoClient = require('mongodb').MongoClient 
+const connectionString = 'mongodb+srv://aiulun:dragonball@cluster0.30ilpzl.mongodb.net/?retryWrites=true&w=majority'
 const app = express()
 const PORT = 8000
 
@@ -54,24 +55,34 @@ const aliens = {
 
 }
 
-app.get('/', (request, response) => {
-    response.sendFile(__dirname + '/index.html')
-})
+MongoClient.connect(connectionString)
+    .then(client => {
+        console.log('Connected to Database')
+        const db = client.db('dragon-ball-races')
+        const raceCollection = db.collection('races')
 
-app.get('/api/:alienName', (request, response) => {
-    const aliensName = request.params.alienName.toLowerCase()
-    if (aliens[aliensName]) {
-        response.json(aliens[aliensName])
-    } else {
-        response.json(aliens['earthling'])
-    }
-})
+        app.get('/', (request, response) => {
+            response.sendFile(__dirname + '/index.html')
+        })
+        
+        app.get('/api/:alienName', (request, response) => {
+            const aliensName = request.params.alienName.toLowerCase()
+            raceCollection
+                .find({ name: aliensName })
+                .toArray()
+                .then(results => {
+                    console.log(results)
+                    response.json(results[0])
+                })
+                .catch(error => console.error(error))
+        })
+        
+        
+        app.listen(process.env.PORT || PORT, () => {
+            console.log(`Server running on port ${PORT}`)
+        })
+    })
+    .catch(error => console.error(error))
 
-app.get('/api/', (request, response) => {
-    response.json(aliens)
-})
 
-app.listen(process.env.PORT || PORT, () => {
-    console.log(`Server running on port ${PORT}`)
-})
 
